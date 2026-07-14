@@ -1,0 +1,38 @@
+name: Build profile SVG
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: ["build_svg.py", "assets/**"]
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: pip install requests
+      - name: Rebuild SVGs
+        env:
+          ACCESS_TOKEN: ${{ secrets.ACCESS_TOKEN }}
+          USER_NAME: SVorobiev-ru
+        run: python build_svg.py
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add dark_mode.svg light_mode.svg README.md cache
+          if git diff --cached --quiet; then
+            echo "Нет изменений"
+          else
+            git commit --amend --no-edit
+            git push --force-with-lease origin HEAD:master
+          fi
